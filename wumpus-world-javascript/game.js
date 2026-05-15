@@ -16,9 +16,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const resetGame = () => {
     console.log("[Juego] Reiniciando estado general...");
-    window.hasGold = false;
-    window.hasWon = false;
-    window.hasLost = false;
+        window.planDeCamino = [];        // Borra por completo la ruta guardada
+        window.hasGold = false;          // Reinicia el estado del oro
+        window.hasLost = false;          // Reinicia estado de derrota si existía
+        window.hasWon = false;           // Reinicia estado de victoria
+        window.playerPosition = { x: 0, y: 0 }; // ¡MUY IMPORTANTE! Forzar a la IA a saber que vuelve a estar en el inicio
+        
+        // Si tienes una lista de celdas sospechosas o peligrosas de la partida anterior, la limpias aquí:
+        if (window.celdasPeligrosas) {
+            window.celdasPeligrosas.clear();
+        }
 
     // Referencia al nuevo botón de movimiento inteligente
     const btnSmart = document.getElementById("ejecutarMovimientoInteligente");
@@ -111,36 +118,58 @@ document.addEventListener("DOMContentLoaded", () => {
   if (resetGameBtn) {
       resetGameBtn.addEventListener("click", resetGame);
   }
+// --- ASIGNACIÓN DE EVENTOS ---
 
-  const genBoardBtn = document.getElementById("generateBoard");
-  if (genBoardBtn) {
-      genBoardBtn.addEventListener("click", () => {
-          console.log("[Tablero] Generando nuevo entorno dinámico...");
-          if (window.hasLost || window.hasWon) {
-              resetGame();
-          }
-          setGoldPosition();
-      });
-  }
+const genBoardBtn = document.getElementById("generateBoard");
+if (genBoardBtn) {
+    genBoardBtn.addEventListener("click", () => {
+        console.log("%c[Tablero] Generando nuevo entorno dinámico...", "color: #4CAF50; font-weight: bold;");
+        
+        // --- CORRECCIÓN: LIMPIEZA ADENTRO DEL EVENTO CLICK ---
+        window.planDeCamino = [];        // Borra por completo la ruta guardada
+        window.hasGold = false;          // Reinicia el estado del oro
+        window.hasLost = false;          // Reinicia estado de derrota si existía
+        window.hasWon = false;           // Reinicia estado de victoria
+        window.playerPosition = { x: 0, y: 0 }; // ¡MUY IMPORTANTE! Forzar a la IA a saber que vuelve a estar en el inicio
+        
+        // Si tienes una lista de celdas sospechosas o peligrosas de la partida anterior, la limpias aquí:
+        if (window.celdasPeligrosas) {
+            window.celdasPeligrosas.clear();
+        }
+
+        console.log("[Sistema] Base de conocimiento e historial de la IA reseteados para el nuevo mapa.");
+
+        // Si el jugador ya había perdido o ganado, restablece la interfaz
+        if (window.hasLost || window.hasWon) {
+            resetGame();
+        }
+        
+        // Calcula la posición del nuevo oro
+        setGoldPosition();
+    });
+}
 
   // Ejecución constante de reglas (Loop de juego)
   setInterval(checkConditions, 100);
 
-  const setGoldPosition = () => {
-    const boardSizeInput = document.getElementById("boardSize");
-    if (!boardSizeInput) return;
-
-    const boardSize = parseInt(boardSizeInput.value);
-    let x = Math.floor(Math.random() * boardSize);
-    let y = Math.floor(Math.random() * boardSize);
-
-    // Evitar spawn sobre el jugador
-    while (x === window.initialPlayerPosition.x && y === window.initialPlayerPosition.y) {
-      x = Math.floor(Math.random() * boardSize);
-      y = Math.floor(Math.random() * boardSize);
+  // Reemplaza la función vieja de setGoldPosition en game.js por esta versión corregida:
+const setGoldPosition = () => {
+    const boardSize = parseInt(document.getElementById("boardSize").value);
+    const cells = Array.from(document.getElementsByClassName("cell"));
+    
+    // Buscamos en el HTML cuál celda tiene físicamente el oro dibujado por sprites.js
+    const celdaConOro = cells.find(c => c.querySelector(".gold") !== null);
+    
+    if (celdaConOro) {
+        // Extraemos las coordenadas a partir del ID de la celda (cell-y-x)
+        const partesId = celdaConOro.id.split("-"); // [ "cell", "y", "x" ]
+        const yOro = parseInt(partesId[1]);
+        const xOro = parseInt(partesId[2]);
+        
+        window.goldPosition = { x: xOro, y: yOro };
+        console.log(`%c[Config] Meta del A* sincronizada con el mapa físico en: (${xOro}, ${yOro})`, "color: #ffeb3b; font-weight: bold;");
+    } else {
+        console.error("[Juego] Error crítico: No se encontró ningún sprite de oro en el mapa generado.");
     }
-
-    window.goldPosition = { x, y };
-    console.log(`[Config] Posición del objetivo establecida en: (${x}, ${y})`);
-  };
+};
 });

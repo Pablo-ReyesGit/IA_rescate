@@ -3,6 +3,12 @@
 // Variable global para rastrear en qué coordenadas está el jugador en todo momento
 let playerPosition = { x: 0, y: 0 }; 
 
+function createSprite(type) {
+    const sprite = document.createElement("div");
+    sprite.classList.add("sprite", type);
+    return sprite;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Referencia al contenedor HTML donde se dibujan las celdas
   const boardContainer = document.getElementById("board");
@@ -131,10 +137,4 @@ document.addEventListener("DOMContentLoaded", () => {
   const generateBoardBtn = document.getElementById("generateBoard");
   generateBoardBtn.addEventListener("click", generateSprites);
 
-  // Agrega esto al final de sprites.js o asegúrate de que esté fuera del DOMContentLoaded
-function createSprite(type) {
-    const sprite = document.createElement("div");
-    sprite.classList.add("sprite", type);
-    return sprite;
-}
 });

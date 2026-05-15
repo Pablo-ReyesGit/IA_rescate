@@ -1,7 +1,9 @@
 // movePlayer.js
 document.addEventListener("DOMContentLoaded", () => {
   // Inicializa la posición del jugador en el eje X e Y
-  let playerPosition = { x: 0, y: 0 }; 
+if (!window.playerPosition) {
+        window.playerPosition = { x: 0, y: 0 }; 
+    }
 
   // Referencias a los botones de la interfaz
   const movePlayerBtn = document.getElementById("ejecutarMovimientoInteligente");
@@ -78,35 +80,53 @@ function aEstrella(inicio, meta, boardSize, celdasHTML) {
 }
 
   // Función principal para realizar el movimiento
-  // Variable para almacenar el plan actual
+  // Variable para almacenar el plan actual .
 let planDeCamino = [];
 
+// EN movePlayer.js
 function ejecutarMovimientoInteligente() {
     const boardSize = parseInt(document.getElementById("boardSize").value);
     const cells = Array.from(document.getElementsByClassName("cell"));
 
-    // 1. Si no hay plan o el objetivo cambió, calcular ruta con A* [cite: 35, 42]
-    if (planDeCamino.length === 0) {
-        // El objetivo es el Oro, si ya lo tiene, el objetivo es (0,0) [cite: 15]
-        let objetivo = !hasGold ? goldPosition : {x: 0, y: 0};
-        planDeCamino = aEstrella(playerPosition, objetivo, boardSize, cells);
-        
-        // El primer elemento es la posición actual, lo quitamos
-        if (planDeCamino) planDeCamino.shift(); 
+    // --- CORRECCIÓN DE SEGURIDAD ---
+    // Si planDeCamino es null, undefined, o no tiene elementos, se inicializa como un arreglo vacío.
+    if (!planDeCamino) {
+        planDeCamino = [];
     }
 
-    // 2. Tomar el siguiente paso del plan
+    // 1. Si no hay plan, calcular ruta con A*
+    if (planDeCamino.length === 0) {
+        let objetivo = !hasGold ? goldPosition : {x: 0, y: 0};
+        console.log(`[Agente] Calculando nuevo plan hacia: (${objetivo.x},${objetivo.y})`);
+        
+        let resultadoAEstrella = aEstrella(playerPosition, objetivo, boardSize, cells);
+        
+        // Evitamos guardar un 'null' directo en planDeCamino si A* falla
+        if (resultadoAEstrella !== null) {
+            planDeCamino = resultadoAEstrella;
+            planDeCamino.shift(); // Quitamos la posición actual
+            console.log(`[Agente] Plan generado con éxito: ${planDeCamino.length} pasos.`);
+        } else {
+            planDeCamino = []; // Lo dejamos vacío en lugar de null si se bloquea
+            console.error("[IA] Error: No existe un camino 100% seguro hacia el objetivo.");
+            document.getElementById("message").innerText = "El agente determina que no hay rutas seguras viables.";
+            return; // Detiene la ejecución para que no intente moverse
+        }
+    }
+
+    // 2. Tomar el siguiente paso del plan de manera segura
     if (planDeCamino && planDeCamino.length > 0) {
         let siguientePaso = planDeCamino.shift();
         
-        // 3. Mover al jugador físicamente (reutiliza tu lógica de sprites)
-        actualizarPosicionEnPantalla(siguientePaso); 
+        if (typeof actualizarPosicionEnPantalla === 'function') {
+            actualizarPosicionEnPantalla(siguientePaso); 
+        }
         
-        // 4. Actualizar la variable global
         playerPosition = siguientePaso;
         
-        // 5. Verificar percepciones del entorno dinámico [cite: 19, 30]
-        verificarSensoresYRecalcular();
+        if (typeof verificarSensoresYRecalcular === 'function') {
+            verificarSensoresYRecalcular();
+        }
     }
 }
 
@@ -130,6 +150,7 @@ function ejecutarMovimientoInteligente() {
       }
     });
   }
+
   function actualizarPosicionEnPantalla(nuevaPos) {
     const boardSize = parseInt(document.getElementById("boardSize").value);
     const cells = Array.from(document.getElementsByClassName("cell"));
