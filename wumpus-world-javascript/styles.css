@@ -1,0 +1,80 @@
+/* styles.css */
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+#board {
+  display: grid;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.cell {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  border: 1px solid #000;
+  background-color: #d06024; /* naranja */
+}
+
+.sprite {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-size: cover;
+}
+
+.black-layer {
+  background-color: black;
+  opacity: 0.9;
+  z-index: 10;
+}
+
+.hidden {
+  display: none;
+}
+
+.gold {
+  background-image: url("./src/resources/gold.png");
+  z-index: 8;
+  width: 40px; /* Ancho deseado */
+  height: 32px; /* Altura deseada */
+  background-size: contain;
+}
+
+.player {
+  background-image: url("./src/resources/agente.png");
+  z-index: 9;
+}
+
+.pit {
+  background-image: url("./src/resources/hoyo.png");
+  z-index: 6;
+  width: 48px; /* Ancho deseado */
+  height: 26px; /* Altura deseada */
+  background-size: contain;
+}
+
+.wumpus {
+  background-image: url("./src/resources/wumpus.png");
+  z-index: 7;
+}
+
+.water {
+  background-image: url("./src/resources/viento.png");
+  z-index: 5;
+}
+
+.stench {
+  background-image: url("./src/resources/mal_olor.png");
+  z-index: 4;
+}
+
+#message {
+  font-size: 18px;
+  font-weight: bold;
+  color: red;
+}
