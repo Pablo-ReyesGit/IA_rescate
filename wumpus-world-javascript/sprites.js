@@ -130,4 +130,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Escucha el botón de "Generar Tablero" para ejecutar toda esta lógica de población
   const generateBoardBtn = document.getElementById("generateBoard");
   generateBoardBtn.addEventListener("click", generateSprites);
+
+  // Agrega esto al final de sprites.js o asegúrate de que esté fuera del DOMContentLoaded
+function createSprite(type) {
+    const sprite = document.createElement("div");
+    sprite.classList.add("sprite", type);
+    return sprite;
+}
 });

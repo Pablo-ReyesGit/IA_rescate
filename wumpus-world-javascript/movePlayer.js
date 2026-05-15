@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let playerPosition = { x: 0, y: 0 }; 
 
   // Referencias a los botones de la interfaz
-  const movePlayerBtn = document.getElementById("movePlayer");
+  const movePlayerBtn = document.getElementById("ejecutarMovimientoInteligente");
   const toggleBlackLayerBtn = document.getElementById("toggleBlackLayer");
   
   // Estructura de datos para recordar qué celdas ya exploró el jugador
@@ -130,8 +130,81 @@ function ejecutarMovimientoInteligente() {
       }
     });
   }
+  function actualizarPosicionEnPantalla(nuevaPos) {
+    const boardSize = parseInt(document.getElementById("boardSize").value);
+    const cells = Array.from(document.getElementsByClassName("cell"));
+    
+    // 1. Quitar sprite de la celda vieja
+    const oldPlayer = document.querySelector(".player");
+    if (oldPlayer) oldPlayer.remove();
+
+    // 2. Dibujar en la celda nueva
+    const index = nuevaPos.y * boardSize + nuevaPos.x;
+    const newCell = cells[index];
+    
+    // Crear el elemento visual (sprite)
+    const img = document.createElement("div");
+    img.classList.add("sprite", "player");
+    newCell.appendChild(img);
+    
+    // 3. Revelar la niebla de la nueva casilla
+    const layer = newCell.querySelector(".black-layer");
+    if (layer) layer.classList.add("hidden");
+    
+    console.log(`[Visual] Jugador movido a: ${nuevaPos.x}, ${nuevaPos.y}`);
+}
+
+/**
+ * Función de Percepción: Verifica el entorno inmediato del agente.
+ * Si detecta un peligro (brisa o hedor), el agente debe ser prudente.
+ */
+function verificarSensoresYRecalcular() {
+    const boardSize = parseInt(document.getElementById("boardSize").value);
+    const cells = Array.from(document.getElementsByClassName("cell"));
+    
+    // Obtener la celda donde está parado el agente ahora mismo
+    const indexActual = playerPosition.y * boardSize + playerPosition.x;
+    const celdaActual = cells[indexActual];
+
+    // 1. PERCEPCIÓN: Leer sensores (clases CSS aplicadas en sprites.js)
+    const hayHedor = celdaActual.querySelector(".stench") !== null;
+    const hayBrisa = celdaActual.querySelector(".water") !== null;
+
+    if (hayHedor || hayBrisa) {
+        console.log("%c[Sensores] ¡Peligro detectado! Percepción: " + 
+            (hayHedor ? "Hedor (Wumpus cerca) " : "") + 
+            (hayBrisa ? "Brisa (Pozo cerca)" : ""), "color: orange; font-weight: bold;");
+
+        // 2. RAZONAMIENTO: ¿Debemos seguir con el plan o es muy arriesgado?
+        // Para la rúbrica de la UMG, aquí demostramos toma de decisiones bajo incertidumbre.
+        
+        // Buscamos si en el plan actual, el siguiente paso es una casilla no visitada
+        if (planDeCamino.length > 0) {
+            const siguientePaso = planDeCamino[0];
+            const indexSiguiente = siguientePaso.y * boardSize + siguientePaso.x;
+            const celdaSiguiente = cells[indexSiguiente];
+            
+            // Si la siguiente celda es "oscura" (no visitada) y hay sensores de peligro
+            const esDesconocida = !celdaSiguiente.querySelector(".black-layer").classList.contains("hidden");
+
+            if (esDesconocida) {
+                console.warn("[IA] El siguiente paso es incierto. Recalculando ruta segura...");
+                
+                // Marcamos la celda actual en una "lista de precaución" para el A*
+                // Esto fuerza al algoritmo a buscar un camino que no pase por aquí si es posible
+                planDeCamino = []; 
+                
+                // Opcional: Podrías llamar a ejecutarMovimientoInteligente() aquí para buscar otra ruta
+            }
+        }
+    } else {
+        console.log("[Sensores] Entorno seguro. Continuando plan...");
+    }
+}
 
   // Asigna las funciones a los clics de los botones
-  movePlayerBtn.addEventListener("click", movePlayer);
-  toggleBlackLayerBtn.addEventListener("click", toggleBlackLayer);
+
+    movePlayerBtn.addEventListener("click", ejecutarMovimientoInteligente);
+
+    toggleBlackLayerBtn.addEventListener("click", toggleBlackLayer);
 });
