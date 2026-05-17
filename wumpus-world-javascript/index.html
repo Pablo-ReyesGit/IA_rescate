@@ -16,6 +16,11 @@
       <option value="11">11x11</option>
       <option value="12">12x12</option>
     </select>
+        <label for="selectorAlgoritmo">Tipo de Búsqueda:</label>
+    <select id="selectorAlgoritmo">
+      <option value="AESTRELLA" selected>Informada (A*)</option>
+      <option value="BFS">No Informada (BFS)</option>
+    </select>
     <button id="generateBoard">Generar Tablero</button>
     <button id="toggleBlackLayer">Mostrar/Ocultar capa negra</button>
     <button id="ejecutarMovimientoInteligente">Avanzar Jugador</button>
@@ -24,7 +29,7 @@
     <button id="resetBtn" class="hidden">Reiniciar Juego</button>
     <script src="script.js"></script>
     <script src="sprites.js"></script>
-    <script src="movePlayer.js"></script>
-    <script src="game.js"></script>
+    <script type="module" src="game.js"></script>
+    <script type="module" src="movePlayer.js"></script>
   </body>
 </html>

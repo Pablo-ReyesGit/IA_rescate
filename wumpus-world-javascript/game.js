@@ -1,6 +1,9 @@
 // game.js
-
+    import BaseConocimiento from './base_conocimiento.js';
+    
+    const BK = new BaseConocimiento();
 document.addEventListener("DOMContentLoaded", () => {
+
   
   // --- VARIABLES DE ESTADO GLOBALES ---
   // Se eliminó 'let' en algunas para asegurar que sean accesibles por movePlayer.js
@@ -131,6 +134,9 @@ if (genBoardBtn) {
         window.hasLost = false;          // Reinicia estado de derrota si existía
         window.hasWon = false;           // Reinicia estado de victoria
         window.playerPosition = { x: 0, y: 0 }; // ¡MUY IMPORTANTE! Forzar a la IA a saber que vuelve a estar en el inicio
+        // Dentro del addEventListener de "generateBoard" en game.js:
+        KB = new BaseConocimiento(); 
+
         
         // Si tienes una lista de celdas sospechosas o peligrosas de la partida anterior, la limpias aquí:
         if (window.celdasPeligrosas) {
