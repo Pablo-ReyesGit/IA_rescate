@@ -45,4 +45,4 @@ export default class BaseConocimientoProposicional {
     }
 }
 
-
+window.BaseConocimientoProposicional = BaseConocimientoProposicional;

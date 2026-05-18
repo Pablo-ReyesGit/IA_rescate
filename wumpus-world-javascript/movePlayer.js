@@ -149,12 +149,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 1. Si no hay plan, calcular ruta con el algoritmo seleccionado
         if (window.planDeCamino.length === 0) {
-            if (!window.hasGold && !window.goldPosition) {
-                console.error("[IA] Error: No se ha establecido la posición del oro todavía.");
-                return;
-            }
+            let objetivo = null;
 
-            let objetivo = !window.hasGold ? window.goldPosition : { x: 0, y: 0 };
+            // Si todavía quedan oros en el mapa, el objetivo es el primero disponible
+            if (window.goldPositions && window.goldPositions.length > 0) {
+                objetivo = window.goldPositions[0]; // El agente selecciona el primer oro de su lista de metas
+                window.hasGold = false; // Asegura que no crea que ya terminó
+                console.log(`[IA] Siguiente objetivo de rescate: (${objetivo.x}, ${objetivo.y})`);
+            } else {
+                // Si el array de oros está vacío, significa que ya los recogió todos. Toca volver a casa.
+                objetivo = { x: 0, y: 0 };
+                window.hasGold = true; // Flag activado para que checkConditions sepa que va de regreso
+                console.log("[IA] ¡Todos los objetivos recolectados! Trazando ruta de retorno a (0,0).");
+            }
             
             const selector = document.getElementById("selectorAlgoritmo");
             const algoritmoSeleccionado = selector ? selector.value : "AESTRELLA";
@@ -216,75 +223,102 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function actualizarPosicionEnPantalla(nuevaPos) {
-        const boardSize = parseInt(document.getElementById("boardSize").value);
-        const cells = Array.from(document.getElementsByClassName("cell"));
-        
-        const listadeJugadores = document.querySelectorAll(".player");
-        listadeJugadores.forEach(p => p.remove());
+    const boardSize = parseInt(document.getElementById("boardSize").value);
+    const cells = Array.from(document.getElementsByClassName("cell"));
+    
+    const listadeJugadores = document.querySelectorAll(".player");
+    listadeJugadores.forEach(p => p.remove());
 
-        const index = nuevaPos.y * boardSize + nuevaPos.x;
-        const newCell = cells[index];
+    const index = nuevaPos.y * boardSize + nuevaPos.x;
+    const newCell = cells[index];
+    
+    if (newCell) {
+        const img = document.createElement("div");
+        img.classList.add("sprite", "player");
+        newCell.appendChild(img);
         
-        if (newCell) {
-            const img = document.createElement("div");
-            img.classList.add("sprite", "player");
-            newCell.appendChild(img);
+        const layer = newCell.querySelector(".black-layer");
+        if (layer) layer.classList.add("hidden");
+        
+        console.log(`[Visual] Jugador dibujado físicamente en: ${nuevaPos.x}, ${nuevaPos.y}`);
+
+        // --- CORRECCIÓN CRÍTICA DE TIEMPOS ---
+        // Primero actualizamos la posición global a la nueva coordenada que acabamos de pisar
+        window.playerPosition = nuevaPos;
+
+        // Ahora evaluamos la celda actual donde estamos parados REALMENTE
+        const spriteOro = newCell.querySelector(".gold");
+        
+        if (spriteOro) {
+            console.log(`%c[Logro] ¡Oro recolectado en (${window.playerPosition.x}, ${window.playerPosition.y})!`, "color: #4caf50; font-weight: bold;");
             
-            const layer = newCell.querySelector(".black-layer");
-            if (layer) layer.classList.add("hidden");
+            // Eliminar el oro visualmente del tablero
+            newCell.removeChild(spriteOro);
             
-            console.log(`[Visual] Jugador dibujado físicamente en: ${nuevaPos.x}, ${nuevaPos.y}`);
-        } else {
-            console.error(`[Visual] Error: La casilla en índice ${index} no existe.`);
+            // Filtrar y eliminar este oro del array de metas globales de la IA
+            if (window.goldPositions && window.goldPositions.length > 0) {
+                window.goldPositions = window.goldPositions.filter(pos => 
+                    !(pos.x === window.playerPosition.x && pos.y === window.playerPosition.y)
+                );
+                
+                console.log("[Config] Lista de objetivos actualizada. Quedan:", window.goldPositions);
+            }
+
+            // Forzar recálculo: Vaciamos el plan para que busque el siguiente oro en el próximo clic
+            window.planDeCamino = [];
         }
+    } else {
+        console.error(`[Visual] Error: La casilla en índice ${index} no existe.`);
     }
+}
 
     // --- CORRECCIÓN BUG 2: Actualización de referencias globales en sensores ---
     function verificarSensoresYRecalcular() {
-        const boardSize = parseInt(document.getElementById("boardSize").value);
-        const cells = Array.from(document.getElementsByClassName("cell"));
-        
-        const indexActual = window.playerPosition.y * boardSize + window.playerPosition.x;
-        const celdaActual = cells[indexActual];
-        if (!celdaActual) return;
+    const boardSize = parseInt(document.getElementById("boardSize").value);
+    const cells = Array.from(document.getElementsByClassName("cell"));
+    
+    const indexActual = window.playerPosition.y * boardSize + window.playerPosition.x;
+    const celdaActual = cells[indexActual];
+    if (!celdaActual) return;
 
-        let idActual = `${window.playerPosition.x}-${window.playerPosition.y}`;
+    let idActual = `${window.playerPosition.x}-${window.playerPosition.y}`;
 
-        // 1. PERCEPCIÓN DE SENSORES (Captura de literales)
-        const hayHedor = celdaActual.querySelector(".stench") !== null;
-        const hayBrisa = celdaActual.querySelector(".water") !== null; // Modifica según tu clase CSS de brisa
+    // 1. PERCEPCIÓN DE SENSORES (Captura de literales)
+    const hayHedor = celdaActual.querySelector(".stench") !== null;
+    const hayBrisa = celdaActual.querySelector(".water") !== null; 
 
-        // 2. TELL: Registrar percepciones en la Base de Conocimiento Proposicional
-        KB.tell(`V-${idActual}`, true); // Visitada = Verdadera
-        KB.tell(`B-${idActual}`, hayBrisa);
-        KB.tell(`H-${idActual}`, hayHedor);
-
+    // 2. TELL: Registrar percepciones en la Base de Conocimiento Proposicional
+    if (window.KB) {
+        window.KB.tell(`V-${idActual}`, true); // Visitada = Verdadera
+        window.KB.tell(`B-${idActual}`, hayBrisa);
+        window.KB.tell(`H-${idActual}`, hayHedor);
         console.log(`[KB - TELL] Registrado en celda (${idActual}) -> Brisa: ${hayBrisa}, Hedor: ${hayHedor}`);
+    }
 
-        // 3. INFERENCIA LOGICA: Analizar el plan futuro bajo las reglas proposicionales
-        if (window.planDeCamino && window.planDeCamino.length > 0) {
-            const siguientePaso = window.planDeCamino[0];
-            const idSiguiente = `${siguientePaso.x}-${siguientePaso.y}`;
+    // 3. INFERENCIA LOGICA: Analizar el plan futuro bajo las reglas proposicionales
+    if (window.planDeCamino && window.planDeCamino.length > 0) {
+        const siguientePaso = window.planDeCamino[0];
+        const idSiguiente = `${siguientePaso.x}-${siguientePaso.y}`;
+        
+        const indexSiguiente = siguientePaso.y * boardSize + siguientePaso.x;
+        const celdaSiguiente = cells[indexSiguiente];
+        const esDesconocida = celdaSiguiente && !celdaSiguiente.querySelector(".black-layer").classList.contains("hidden");
+
+        if (esDesconocida && window.KB) {
+            // Obtenemos los vecinos de la celda de destino para evaluarla
+            let vecinosDestino = obtenerVecinosAdyacentes(siguientePaso.x, siguientePaso.y, boardSize);
             
-            const indexSiguiente = siguientePaso.y * boardSize + siguientePaso.x;
-            const celdaSiguiente = cells[indexSiguiente];
-            const esDesconocida = celdaSiguiente && !celdaSiguiente.querySelector(".black-layer").classList.contains("hidden");
+            // ASK: Le preguntamos a la KB si la casilla de destino es segura basándonos en lo que ya sabemos
+            let esSegura = window.KB.esCeldaSeguraDeducida(siguientePaso.x, siguientePaso.y, vecinosDestino);
 
-            if (esDesconocida) {
-                // Obtenemos los vecinos de la celda de destino para evaluarla
-                let vecinosDestino = obtenerVecinosAdyacentes(siguientePaso.x, siguientePaso.y, boardSize);
-                
-                // ASK: Le preguntamos a la KB si la casilla de destino es segura basándonos en lo que ya sabemos
-                let esSegura = window.KB.esCeldaSeguraDeducida(siguientePaso.x, siguientePaso.y, vecinosDestino);
-
-                if (!esSegura && (hayBrisa || hayHedor)) {
-                    console.warn(`[KB - INFERENCIA] Celda ${idSiguiente} no se puede deducir como segura debido a sensores activos. Cancelando plan.`);
-                    if (window.celdasPeligrosas) window.celdasPeligrosas.add(idSiguiente);
-                    window.planDeCamino = []; // Forzar recalculo seguro
-                }
+            if (!esSegura && (hayBrisa || hayHedor)) {
+                console.warn(`[KB - INFERENCIA] Celda ${idSiguiente} no se puede deducir como segura debido a sensores activos. Cancelando plan.`);
+                if (window.celdasPeligrosas) window.celdasPeligrosas.add(idSiguiente);
+                window.planDeCamino = []; // Forzar recalculo seguro
             }
         }
     }
+}
 
     // Función auxiliar para calcular coordenadas adyacentes válidas
     function obtenerVecinosAdyacentes(x, y, boardSize) {
